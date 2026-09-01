@@ -6,6 +6,8 @@ import '../core/storage.dart';
 import '../core/theme.dart';
 import '../widgets/glass_background.dart';
 import 'docs_editor_screen.dart';
+import 'sheets_editor_screen.dart';
+import 'slides_editor_screen.dart';
 
 class AiCopilotScreen extends StatefulWidget {
   const AiCopilotScreen({super.key});
@@ -23,7 +25,7 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
     {
       'role': 'assistant',
       'text':
-          'Merhaba! Ben Easy AI Asistanınız. 🤖✨\n\nWord belgelerinizi yazabilir, Excel için gelişmiş formüller üretebilir, sunum slaytları tasarlayabilir veya sözleşmelerinizi analiz edebilirim. Size nasıl yardımcı olabilirim?',
+          'Merhaba! Ben Easy AI Asistanınız. 🤖✨\n\nWord sözleşmelerinizi hazırlayabilir, Excel için gelişmiş formüllü tablolar kurabilir, sunum slaytları tasarlayabilir veya dokümanlarınızı özetleyebilirim. Size nasıl yardımcı olabilirim?',
     },
   ];
 
@@ -44,39 +46,41 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
     _inputController.clear();
     _scrollToBottom();
 
-    // AI Response generation logic
-    Future.delayed(const Duration(milliseconds: 700), () {
+    // AI Yanıt Üretme Motoru
+    Future.delayed(const Duration(milliseconds: 650), () {
       if (!mounted) return;
 
       String aiResponse = '';
       final lower = query.toLowerCase();
 
-      if (lower.contains('sözleşme') || lower.contains('nda') || lower.contains('contract')) {
+      if (lower.contains('sözleşme') || lower.contains('nda') || lower.contains('contract') || lower.contains('protokol')) {
         aiResponse =
-            '📋 **Hazırlanan Gizlilik & Hizmet Sözleşmesi:**\n\n'
-            '**Madde 1 (Taraflar):** Easy Office ve Müşteri arasında akdedilmiştir.\n'
-            '**Madde 2 (Gizlilik):** Paylaşılan tüm ofis verileri ve finansal analizler kesinlikle 3. şahıslara aktarılamaz.\n'
-            '**Madde 3 (Süre):** İşbu sözleşme imza tarihinden itibaren 2 (iki) yıl süreyle geçerlidir.\n\n'
-            'Bu taslağı tek dokunuşla yeni bir **Easy Docs** belgesine aktarabilirsiniz!';
-      } else if (lower.contains('excel') || lower.contains('formül') || lower.contains('sum') || lower.contains('kâr')) {
+            '📋 **Hazırlanan Gizlilik & Hizmet Sözleşmesi (Draft):**\n\n'
+            '**MADDE 1 - TARAFLAR:**\nİşbu sözleşme Easy Office (Hizmet Sağlayıcı) ile Kullanıcı (Müşteri) arasında akdedilmiştir.\n\n'
+            '**MADDE 2 - GİZLİLİK VE VERİ GÜVENLİĞİ:**\nPaylaşılan tüm ticari sırlar, finansal dökümler ve ofis verileri 3. şahıslara aktarılamaz ve yerel cihazda şifrelenir.\n\n'
+            '**MADDE 3 - SÜRE VE FESİH:**\nSözleşme imza tarihinden itibaren 2 yıl geçerlidir.\n\n'
+            '👉 *Aşağıdaki butonla bu taslağı anında düzenlenebilir Word belgesine aktarabilirsiniz.*';
+      } else if (lower.contains('excel') || lower.contains('formül') || lower.contains('sum') || lower.contains('kâr') || lower.contains('tablo') || lower.contains('bütçe')) {
         aiResponse =
-            '📊 **Excel Gelişmiş Formül Önerisi:**\n\n'
-            '• **Kâr Hesaplama:** `=B2-C2`\n'
-            '• **Toplam Ciro:** `=SUM(B2:B10)`\n'
-            '• **Ortalama Sipariş Tutarı:** `=AVERAGE(B2:B10)`\n'
-            '• **Büyüme Oranı:** `=(B2-B1)/B1`\n\n'
-            'Bu formülleri doğrudan **Easy Sheets** tablonuza yapıştırabilirsiniz.';
-      } else if (lower.contains('sunum') || lower.contains('pitch') || lower.contains('slayt')) {
+            '📊 **Excel Hesap Tablosu & Formül Paketi:**\n\n'
+            '• **Satış Kârı:** `=B2-C2` *(Gelir - Gider)*\n'
+            '• **Genel Ciro Toplamı:** `=SUM(B2:B10)`\n'
+            '• **KDV Hesaplama (%20):** `=B2*0.20`\n'
+            '• **Net Bakiye:** `=SUM(D2:D10)-SUM(E2:E10)`\n'
+            '• **Ortalama Değer:** `=AVERAGE(B2:B10)`\n\n'
+            '👉 *Aşağıdaki butonla formüllü boş bir Excel tablosu oluşturabilirsiniz.*';
+      } else if (lower.contains('sunum') || lower.contains('pitch') || lower.contains('slayt') || lower.contains('proje')) {
         aiResponse =
-            '📽️ **Girişim Yatırımcı Sunumu Taslağı (3 Slayt):**\n\n'
-            '1. **Slayt 1 (Vizyon):** Yeni Nesil Mobil Ofis Teknolojileri.\n'
-            '2. **Slayt 2 (Pazar Büyüklüğü):** 48 Milyar Dolarlık mobil üretkenlik pazarı.\n'
-            '3. **Slayt 3 (Çözüm):** Hepsi bir arada ofis araçları ve dahili OCR motoru.';
+            '📽️ **Girişim ve Yatırımcı Sunumu Taslağı (3 Slayt):**\n\n'
+            '1. **Slayt 1 (Vizyon):** Yeni Nesil Yapay Zeka Destekli Mobil Ofis Ekosistemi\n'
+            '2. **Slayt 2 (Pazar & Fırsat):** 48 Milyar Dolarlık küresel mobil üretkenlik pazarı\n'
+            '3. **Slayt 3 (Teknoloji & Çözüm):** Hepsi bir arada Word/Excel/PPT/PDF ve dahili OCR motoru\n\n'
+            '👉 *Aşağıdaki butonla bu sunumu doğrudan slayt stüdyosuna aktarabilirsiniz.*';
       } else {
         aiResponse =
-            '✨ **Easy AI Analiz ve Çıktı:**\n\n'
-            'Talebinizi işledim: "$query".\n'
-            'Easy Office AI motoru içeriği profesyonel iş standartlarına uygun olarak biçimlendirdi. Belgenize eklemek veya dışa aktarmak için aşağıdaki butonları kullanabilirsiniz.';
+            '✨ **Easy AI Akıllı Yanıtı:**\n\n'
+            'Talebiniz incelendi: "$query".\n'
+            'Easy Office AI motoru içeriği profesyonel iş standartlarına ve kurumsal formata uygun şekilde yapılandırdı. Belgenize eklemek veya dışa aktarmak için aşağıdaki aksiyonları kullanabilirsiniz.';
       }
 
       setState(() {
@@ -102,7 +106,7 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
   void _createDocFromAi(String content) {
     final doc = OfficeDocument(
       id: 'doc-${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Easy AI Taslak Belge.docx',
+      title: 'AI Üretilen Belge.docx',
       type: DocumentType.doc,
       lastModified: DateTime.now(),
       previewContent: content.length > 80 ? '${content.substring(0, 80)}...' : content,
@@ -114,10 +118,51 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
     );
   }
 
+  void _createSheetFromAi(String content) {
+    final doc = OfficeDocument(
+      id: 'sheet-${DateTime.now().millisecondsSinceEpoch}',
+      title: 'AI Üretilen Tablo.xlsx',
+      type: DocumentType.sheet,
+      lastModified: DateTime.now(),
+      previewContent: 'AI tarafından oluşturulan formüllü hesap tablosu',
+      data: <String, String>{
+        'A1': 'Kalem Açıklaması', 'B1': 'Miktar', 'C1': 'Birim Fiyat', 'D1': 'Toplam Tutar',
+        'A2': 'Satış Geliri', 'B2': '10', 'C2': '250', 'D2': '=B2*C2',
+        'A3': 'Hizmet Bedeli', 'B3': '1', 'C3': '1500', 'D3': '=B3*C3',
+        'A4': 'GENEL TOPLAM', 'D4': '=SUM(D2:D3)',
+      },
+    );
+    OfficeStorage().addDocument(doc);
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SheetsEditorScreen(document: doc)),
+    );
+  }
+
+  void _createSlideFromAi(String content) {
+    final doc = OfficeDocument(
+      id: 'slide-${DateTime.now().millisecondsSinceEpoch}',
+      title: 'AI Üretilen Sunum.pptx',
+      type: DocumentType.slide,
+      lastModified: DateTime.now(),
+      previewContent: 'AI tarafından oluşturulan sunum slaytları',
+      data: [
+        SlideModel(
+          title: 'Yeni Nesil Proje Vizyonu',
+          subtitle: 'Easy AI Tarafından Hazırlandı',
+          body: '• Pazar analizi ve büyüme hedefleri\n• Yapay zeka destekli ofis araçları\n• Yüksek verimlilik ve hız',
+          themeName: 'Modern Dark',
+        ),
+      ],
+    );
+    OfficeStorage().addDocument(doc);
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SlidesEditorScreen(document: doc)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -161,7 +206,7 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   _buildPromptChip('📝 Gizlilik Sözleşmesi Yaz', isDark),
-                  _buildPromptChip('📊 Excel Kâr Formülü Üret', isDark),
+                  _buildPromptChip('📊 Excel Kâr & Bütçe Formülü', isDark),
                   _buildPromptChip('📽️ 3 Slaytlık Pitch Deck', isDark),
                   _buildPromptChip('🌐 Profesyonel İngilizce Çevir', isDark),
                 ],
@@ -180,8 +225,8 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
                       alignment: Alignment.centerLeft,
                       child: GlassCard(
                         isDark: isDark,
-                        radius: 16,
-                        padding: const EdgeInsets.all(12),
+                        radius: 18,
+                        padding: const EdgeInsets.all(14),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -209,29 +254,30 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
                     alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
-                      padding: const EdgeInsets.all(14),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
+                      padding: const EdgeInsets.all(16),
                       decoration: isUser
                           ? BoxDecoration(
                               gradient: OfficeTheme.brandGradient,
                               borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(18),
-                                topRight: Radius.circular(18),
-                                bottomLeft: Radius.circular(18),
+                                topLeft: Radius.circular(20),
+                                topRight: Radius.circular(20),
+                                bottomLeft: Radius.circular(20),
                                 bottomRight: Radius.circular(4),
                               ),
                               boxShadow: [
                                 BoxShadow(
                                   color: const Color(0xFF0284C7).withValues(alpha: 0.35),
-                                  blurRadius: 10,
+                                  blurRadius: 12,
                                   offset: const Offset(0, 3),
                                 ),
                               ],
                             )
                           : OfficeTheme.glassBox(
                               isDark: isDark,
-                              radius: 18,
-                              borderColor: OfficeTheme.cyanGlow.withValues(alpha: isDark ? 0.25 : 0.15),
+                              radius: 20,
+                              borderColor: OfficeTheme.cyanGlow.withValues(alpha: isDark ? 0.30 : 0.18),
+                              fillColor: isDark ? const Color(0xFF0D1B36).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.92),
                             ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,10 +293,44 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
                             ),
                           ),
                           if (!isUser && idx > 0) ...[
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                            const SizedBox(height: 14),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
+                                FilledButton.tonalIcon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: OfficeTheme.docColor.withValues(alpha: isDark ? 0.3 : 0.12),
+                                    foregroundColor: isDark ? Colors.cyanAccent : OfficeTheme.docColor,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: () => _createDocFromAi(text),
+                                  icon: const Icon(Icons.description_rounded, size: 14),
+                                  label: const Text('Word Yap', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                                FilledButton.tonalIcon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: OfficeTheme.sheetColor.withValues(alpha: isDark ? 0.3 : 0.12),
+                                    foregroundColor: isDark ? Colors.greenAccent : OfficeTheme.sheetColor,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: () => _createSheetFromAi(text),
+                                  icon: const Icon(Icons.table_view_rounded, size: 14),
+                                  label: const Text('Excel Yap', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                                FilledButton.tonalIcon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: OfficeTheme.slideColor.withValues(alpha: isDark ? 0.3 : 0.12),
+                                    foregroundColor: isDark ? Colors.orangeAccent : OfficeTheme.slideColor,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: () => _createSlideFromAi(text),
+                                  icon: const Icon(Icons.slideshow_rounded, size: 14),
+                                  label: const Text('Sunum Yap', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
                                 IconButton(
                                   icon: const Icon(Icons.copy_rounded, size: 16),
                                   tooltip: 'Kopyala',
@@ -260,18 +340,6 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
                                       const SnackBar(content: Text('Metin panoya kopyalandı!')),
                                     );
                                   },
-                                ),
-                                const SizedBox(width: 4),
-                                FilledButton.tonalIcon(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: OfficeTheme.primaryBrand.withValues(alpha: isDark ? 0.3 : 0.15),
-                                    foregroundColor: isDark ? OfficeTheme.cyanGlow : OfficeTheme.primaryBrand,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  onPressed: () => _createDocFromAi(text),
-                                  icon: const Icon(Icons.description_outlined, size: 14),
-                                  label: const Text('Belgeye Dönüştür', style: TextStyle(fontSize: 11)),
                                 ),
                               ],
                             ),
@@ -286,11 +354,12 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
 
             // Giriş Alanı
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
               child: GlassCard(
                 isDark: isDark,
-                radius: 24,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                radius: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                borderColor: OfficeTheme.cyanGlow.withValues(alpha: 0.4),
                 child: Row(
                   children: [
                     Expanded(
@@ -339,14 +408,14 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
       padding: const EdgeInsets.only(right: 8),
       child: GlassCard(
         isDark: isDark,
-        radius: 12,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        radius: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         onTap: () => _sendMessage(text),
         child: Text(
           text,
           style: TextStyle(
             fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
             color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
           ),
         ),
@@ -354,4 +423,3 @@ class _AiCopilotScreenState extends State<AiCopilotScreen> {
     );
   }
 }
-

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/models.dart';
+import '../core/storage.dart';
 import '../core/theme.dart';
 import 'glass_background.dart';
+import 'office_3d_icon.dart';
 
 class DocumentCard extends StatelessWidget {
   final OfficeDocument document;
@@ -34,47 +36,22 @@ class DocumentCard extends StatelessWidget {
 
     return GlassCard(
       isDark: isDark,
-      radius: 16,
+      radius: 18,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       onTap: onTap,
-      borderColor: document.brandColor.withValues(alpha: isDark ? 0.35 : 0.25),
+      borderColor: document.brandColor.withValues(alpha: isDark ? 0.35 : 0.22),
+      fillColor: isDark
+          ? const Color(0xFF101B33).withValues(alpha: 0.75)
+          : Colors.white.withValues(alpha: 0.88),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 3D Işıltılı İkon Rozeti
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  document.brandColor.withValues(alpha: isDark ? 0.35 : 0.2),
-                  document.brandColor.withValues(alpha: isDark ? 0.15 : 0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: document.brandColor.withValues(alpha: 0.4),
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: document.brandColor.withValues(alpha: isDark ? 0.25 : 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Icon(
-                document.icon,
-                color: document.brandColor,
-                size: 26,
-              ),
-            ),
+          // 3D Parlak İkon Rozeti
+          Office3DIcon.fromDocType(
+            document.type,
+            size: 48,
+            withGlow: true,
           ),
           const SizedBox(width: 14),
 
@@ -89,7 +66,7 @@ class DocumentCard extends StatelessWidget {
                       child: Text(
                         document.title,
                         style: TextStyle(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                           fontSize: 14,
                           color: isDark ? Colors.white : const Color(0xFF0F172A),
                         ),
@@ -99,12 +76,12 @@ class DocumentCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: document.brandColor.withValues(alpha: isDark ? 0.25 : 0.12),
-                        borderRadius: BorderRadius.circular(6),
+                        color: document.brandColor.withValues(alpha: isDark ? 0.25 : 0.14),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: document.brandColor.withValues(alpha: 0.3),
+                          color: document.brandColor.withValues(alpha: 0.35),
                           width: 0.8,
                         ),
                       ),
@@ -112,7 +89,7 @@ class DocumentCard extends StatelessWidget {
                         document.typeLabel,
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                           color: document.brandColor,
                           letterSpacing: 0.3,
                         ),
@@ -125,6 +102,7 @@ class DocumentCard extends StatelessWidget {
                   document.previewContent,
                   style: TextStyle(
                     fontSize: 12,
+                    height: 1.4,
                     color: isDark
                         ? const Color(0xFF94A3B8)
                         : const Color(0xFF64748B),
@@ -132,7 +110,7 @@ class DocumentCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Icon(
@@ -145,10 +123,41 @@ class DocumentCard extends StatelessWidget {
                       _formatDate(document.lastModified),
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: isDark
                             ? const Color(0xFF64748B)
                             : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      '${document.fileSizeKb} KB',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        OfficeStorage().toggleFavorite(document.id);
+                      },
+                      child: Icon(
+                        document.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+                        size: 20,
+                        color: document.isFavorite ? OfficeTheme.goldPro : (isDark ? Colors.white30 : Colors.black26),
                       ),
                     ),
                   ],
@@ -165,23 +174,31 @@ class DocumentCard extends StatelessWidget {
               color: isDark ? Colors.white70 : Colors.black54,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: isDark ? Colors.cyanAccent.withValues(alpha: 0.2) : const Color(0xFFE2E8F0),
+                color: isDark ? Colors.cyanAccent.withValues(alpha: 0.25) : const Color(0xFFE2E8F0),
               ),
             ),
-            color: isDark ? const Color(0xFF131D33) : Colors.white,
+            color: isDark ? const Color(0xFF0F1A30) : Colors.white,
             onSelected: (val) {
-              if (val == 'delete') onDelete();
+              if (val == 'delete') {
+                onDelete();
+              } else if (val == 'favorite') {
+                OfficeStorage().toggleFavorite(document.id);
+              }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'share',
+              PopupMenuItem(
+                value: 'favorite',
                 child: Row(
                   children: [
-                    Icon(Icons.share_rounded, size: 18, color: OfficeTheme.primaryBrand),
-                    SizedBox(width: 10),
-                    Text('Paylaş'),
+                    Icon(
+                      document.isFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+                      size: 18,
+                      color: OfficeTheme.goldPro,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(document.isFavorite ? 'Yıldızı Kaldır' : 'Favorilere Ekle'),
                   ],
                 ),
               ),
@@ -189,9 +206,9 @@ class DocumentCard extends StatelessWidget {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                    Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
                     SizedBox(width: 10),
-                    Text('Sil', style: TextStyle(color: Colors.red)),
+                    Text('Belgeyi Sil', style: TextStyle(color: Colors.redAccent)),
                   ],
                 ),
               ),
@@ -202,4 +219,3 @@ class DocumentCard extends StatelessWidget {
     );
   }
 }
-

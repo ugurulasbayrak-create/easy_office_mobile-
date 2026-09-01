@@ -24,11 +24,11 @@ class GlassBackground extends StatelessWidget {
         children: [
           // Üst Sağ Işıltılı Neon Camgöbeği Parıltısı
           Positioned(
-            top: -60,
+            top: -80,
             right: -60,
             child: Container(
-              width: 260,
-              height: 260,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
@@ -42,18 +42,38 @@ class GlassBackground extends StatelessWidget {
             ),
           ),
 
-          // Sol Alt Sıcak Altın / Kehribar Parıltı
+          // Sol Orta Mor / Nebula Parıltısı
           Positioned(
-            bottom: 80,
-            left: -80,
+            top: MediaQuery.of(context).size.height * 0.35,
+            left: -100,
             child: Container(
-              width: 220,
-              height: 220,
+              width: 260,
+              height: 260,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    OfficeTheme.goldPro.withValues(alpha: isDark ? 0.12 : 0.10),
+                    (isDark ? const Color(0xFF7C3AED) : const Color(0xFFC084FC))
+                        .withValues(alpha: isDark ? 0.18 : 0.12),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Sol Alt Sıcak Altın / Kehribar Parıltı
+          Positioned(
+            bottom: 60,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    OfficeTheme.goldPro.withValues(alpha: isDark ? 0.14 : 0.10),
                     Colors.transparent,
                   ],
                 ),
@@ -63,6 +83,7 @@ class GlassBackground extends StatelessWidget {
 
           // Ana İçerik
           SafeArea(
+            bottom: false,
             child: child,
           ),
         ],
@@ -80,17 +101,19 @@ class GlassCard extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? borderColor;
   final Color? fillColor;
+  final bool glow;
 
   const GlassCard({
     super.key,
     required this.child,
     required this.isDark,
-    this.radius = 18,
+    this.radius = 20,
     this.padding,
     this.margin,
     this.onTap,
     this.borderColor,
     this.fillColor,
+    this.glow = false,
   });
 
   @override
@@ -102,6 +125,7 @@ class GlassCard extends StatelessWidget {
         radius: radius,
         borderColor: borderColor,
         fillColor: fillColor,
+        glow: glow,
       ),
       child: child,
     );
@@ -109,23 +133,25 @@ class GlassCard extends StatelessWidget {
     if (onTap != null) {
       content = Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(radius),
         child: InkWell(
-          onTap: onTap,
           borderRadius: BorderRadius.circular(radius),
+          onTap: onTap,
+          splashColor: (borderColor ?? OfficeTheme.primaryBrand).withValues(alpha: 0.15),
+          highlightColor: (borderColor ?? OfficeTheme.primaryBrand).withValues(alpha: 0.08),
           child: content,
         ),
       );
     }
 
-    if (margin != null) {
-      content = Padding(padding: margin!, child: content);
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: content,
+    return Container(
+      margin: margin ?? EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: content,
+        ),
       ),
     );
   }

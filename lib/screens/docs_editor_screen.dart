@@ -3,6 +3,7 @@ import '../core/localization.dart';
 import '../core/models.dart';
 import '../core/storage.dart';
 import '../core/theme.dart';
+import '../widgets/glass_background.dart';
 
 class DocsEditorScreen extends StatefulWidget {
   final OfficeDocument? document;
@@ -23,8 +24,8 @@ class _DocsEditorScreenState extends State<DocsEditorScreen> {
   bool _isUnderline = false;
   double _fontSize = 15.0;
   double _lineHeight = 1.6;
-  String _fontFamily = 'Normal';
-  Color _selectedTextColor = const Color(0xFF1E293B);
+  final String _fontFamily = 'Normal';
+  final Color _selectedTextColor = const Color(0xFF1E293B);
 
   int _wordCount = 0;
   int _charCount = 0;
@@ -40,103 +41,9 @@ class _DocsEditorScreenState extends State<DocsEditorScreen> {
     String initialText = widget.document?.data as String? ??
         '# Proje Dokümantasyonu\n\nEasy Office Docs kelime işlemcisine hoş geldiniz. Zengin metin biçimlendirme araçlarını, başlıkları, tabloları ve Easy AI asistanını kullanarak dökümanlarınızı profesyonelce hazırlayın.';
 
-    final docTitle = widget.document?.title ?? '';
-
-    // Check for Turkish e-Invoice / shifted font patterns
-    if (docTitle.contains('MIR2026') ||
-        initialText.contains('d H U P L N') ||
-        initialText.contains('3 R V W D') ||
-        initialText.contains('9 H U J L') ||
-        initialText.contains('H ) \$ 7 8 5 \$') ||
-        initialText.contains('H E 6 L W H V L') ||
-        initialText.contains('6 Õ U D') ||
-        initialText.contains('M I R 2 0 2 6')) {
-      initialText = _getCleanInvoiceContent();
-    } else {
-      // Sanitize binary noise and normalize shifted fonts
-      initialText = initialText
-          .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]'), ' ')
-          .replaceAll(RegExp(r'[ ]{3,}'), '  ');
-
-      final lines = initialText.split('\n');
-      final formattedLines = <String>[];
-      for (final l in lines) {
-        final t = l.trim();
-        if (t.isNotEmpty && RegExp(r'^(?:[a-zA-Z0-9çğıöşüÇĞİÖŞÜ@\.\-/:#]\s+){3,}').hasMatch(t)) {
-          formattedLines.add(t.replaceAll(RegExp(r'\s+'), ' '));
-        } else if (t.isNotEmpty) {
-          formattedLines.add(t);
-        }
-      }
-      if (formattedLines.isNotEmpty) {
-        initialText = formattedLines.join('\n\n');
-      }
-    }
-
     _contentController = TextEditingController(text: initialText);
-
     _updateStats();
     _contentController.addListener(_updateStats);
-  }
-
-  String _getCleanInvoiceContent() {
-    return '''# MİRDAŞ MADENCİLİK LİMİTED ŞİRKETİ
-**e-FATURA (Ticari Fatura / İhraç Kayıtlı)**
-
-**Adres:** ÇUKUR MAHALLESİ KATİP MEHMET CADDESİ NO:36/4 No: 21600 Çermik / Diyarbakır
-**Tel:** 5327420584 | **Fax:** -
-**E-Posta:** recepgundem@hotmail.com
-**Vergi Dairesi:** ÇERMİK MAL MÜDÜRLÜĞÜ | **VKN:** 6211156954
-**ETTN:** a20c626e-1c1a-48e3-b65e-e7cdb90e90d9
-
----
-
-### ALICI BİLGİLERİ (SAYIN)
-**EKOMAR MADENCİLİK SAN TİC LTD ŞTİ**
-ÜÇEVLER MAH. AHISKA CAD. ÇETİNKAYA A BLOK No:73 A 00000 Nilüfer / Bursa
-**Vergi Dairesi:** ÇEKİRGE VERGİ DAİRESİ | **VKN:** 3300481589
-
-**Fatura No:** MIR2026000000056 | **Özelleştirme No:** TR1.2
-**Fatura Tarihi:** 14-08-2026 | **Düzenleme Tarihi:** 14-08-2026
-**Senaryo:** TİCARİ FATURA | **Fatura Tipi:** İHRAÇ KAYITLI
-**İrsaliye No:** MDS2026000000056 | **İrsaliye Tarihi:** 11-08-2026
-
----
-
-### MAL / HİZMET DETAYLARI
-| Sıra | Mal / Hizmet | Miktar | Birim Fiyat | İskonto | KDV Oranı | KDV Tutarı | Toplam Tutar |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | 310X180X180 Ebatlarında Mermer Blok | 27,2 ton | 100 USD | %0 | %20,00 | 544,00 USD | 2.720,00 USD |
-
----
-
-### VERGİ VE TUTAR ÖZETİ
-• **Mal Hizmet Toplam Tutarı:** 2.720,00 USD
-• **Toplam İskonto:** 0,00 USD
-• **KDV Matrahı:** 2.720,00 USD
-• **Hesaplanan KDV (%20):** 544,00 USD
-• **Vergiler Dahil Toplam Tutar:** 3.264,00 USD
-• **ÖDENECEK TOPLAM TUTAR:** 2.720,00 USD
-
-• **Hesaplanan KDV (%20) (TL):** 25.987,80 TL
-• **Mal Hizmet Toplam Tutarı (TL):** 129.939,02 TL
-• **Vergiler Dahil Toplam Tutar (TL):** 155.926,83 TL
-• **ÖDENECEK TOPLAM TUTAR (TL):** 129.939,02 TL
-
----
-
-**Vergi İstisna Muafiyet Sebebi:** 701-3065 s. KDV Kanununun 11/1-c md. Kapsamındaki İhraç Kayıtlı Satış
-*(3065 sayılı KDV Kanununun 11/1-c maddesi hükümlerine göre ihraç edilmek şartıyla teslim edildiğinden KDV tahsil edilmemiştir.)*
-
-**Yazı İle Tutar:** Yalnız İKİBİNYEDİYÜZYİRMİ Dolar'dır (Yalnız YÜZYİRMİDOKUZBİNDOKUZYÜZOTUZDOKUZ TL İKİ Kr'dir)
-**Döviz Kuru:** 47.7717 TL
-
----
-
-### BANKA VE ÖDEME BİLGİLERİ
-• **IBAN:** TR500001200126900010100254
-• **Para Birimi:** TRY
-• **Banka Şubesi:** HALK BANKASI / ÇERMİK ŞUBESİ (Şube Kodu: 1269)''';
   }
 
   void _updateStats() {
@@ -270,12 +177,85 @@ class _DocsEditorScreenState extends State<DocsEditorScreen> {
     );
   }
 
+  void _showFontOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          color: isDark ? const Color(0xFF0F172A) : Colors.white,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Yazı Tipi & Boyut Ayarları', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Yazı Boyutu:'),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: () {
+                          if (_fontSize > 10) setState(() => _fontSize -= 1);
+                        },
+                      ),
+                      Text('${_fontSize.toInt()} pt', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: () {
+                          if (_fontSize < 32) setState(() => _fontSize += 1);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Satır Aralığı:'),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('1.2x'),
+                        selected: _lineHeight == 1.2,
+                        onSelected: (v) => setState(() => _lineHeight = 1.2),
+                      ),
+                      const SizedBox(width: 6),
+                      ChoiceChip(
+                        label: const Text('1.6x'),
+                        selected: _lineHeight == 1.6,
+                        onSelected: (v) => setState(() => _lineHeight = 1.6),
+                      ),
+                      const SizedBox(width: 6),
+                      ChoiceChip(
+                        label: const Text('2.0x'),
+                        selected: _lineHeight == 2.0,
+                        onSelected: (v) => setState(() => _lineHeight = 2.0),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -286,7 +266,7 @@ class _DocsEditorScreenState extends State<DocsEditorScreen> {
         ),
         title: TextField(
           controller: _titleController,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF0F172A)),
           decoration: const InputDecoration(
             border: InputBorder.none,
             hintText: 'Belge Başlığı',
@@ -295,97 +275,113 @@ class _DocsEditorScreenState extends State<DocsEditorScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.text_fields_rounded),
+            tooltip: 'Yazı Tipi & Boyut',
+            onPressed: _showFontOptions,
+          ),
+          IconButton(
             icon: const Icon(Icons.share_outlined),
             tooltip: 'Dışa Aktar',
             onPressed: _showExportModal,
           ),
           IconButton(
-            icon: const Icon(Icons.check_circle_outline_rounded),
+            icon: const Icon(Icons.check_circle_rounded, color: OfficeTheme.sheetColor),
             tooltip: 'Kaydet',
             onPressed: _saveDocument,
           ),
+          const SizedBox(width: 4),
         ],
       ),
-      body: Column(
-        children: [
-          // Pro Document Live Info Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
-              border: Border(
-                bottom: BorderSide(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFDBEAFE),
+      body: GlassBackground(
+        isDark: isDark,
+        child: Column(
+          children: [
+            // Pro Document Live Info Banner
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF101B33).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? Colors.cyanAccent.withValues(alpha: 0.2) : const Color(0xFFE2E8F0),
                 ),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.edit_note_rounded, size: 16, color: OfficeTheme.docColor),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$_wordCount ${LanguageProvider.tr('words')} | $_charCount ${LanguageProvider.tr('chars')} | $_paragraphCount Paragraf',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: OfficeTheme.docColor),
-                    ),
-                  ],
-                ),
-                Text(
-                  '~${(_wordCount / 200).ceil()} ${LanguageProvider.tr('read_time')}',
-                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                ),
-              ],
-            ),
-          ),
-
-          // Main A4 Paper Simulation Canvas
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.edit_note_rounded, size: 16, color: OfficeTheme.docColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$_wordCount ${LanguageProvider.tr('words')} | $_charCount ${LanguageProvider.tr('chars')} | $_paragraphCount Paragraf',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: OfficeTheme.docColor),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '~${(_wordCount / 200).ceil()} ${LanguageProvider.tr('read_time')}',
+                    style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   ),
                 ],
               ),
-              child: TextField(
-                controller: _contentController,
-                maxLines: null,
-                expands: true,
-                style: TextStyle(
-                  fontSize: _fontSize,
-                  height: _lineHeight,
-                  fontFamily: _fontFamily == 'Monospace' ? 'monospace' : null,
-                  color: isDark ? const Color(0xFFF8FAFC) : _selectedTextColor,
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Belgenizi yazmaya başlayın...',
-                ),
-              ),
             ),
-          ),
 
-          // Pro Mobile Formatting Toolbar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              border: Border(
-                top: BorderSide(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            // Main Paper Canvas with Luxury Styling
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F1A30).withValues(alpha: 0.9) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? Colors.cyanAccent.withValues(alpha: 0.15) : const Color(0xFFCBD5E1),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _contentController,
+                  maxLines: null,
+                  expands: true,
+                  style: TextStyle(
+                    fontSize: _fontSize,
+                    height: _lineHeight,
+                    fontFamily: _fontFamily == 'Monospace' ? 'monospace' : null,
+                    color: isDark ? const Color(0xFFF8FAFC) : _selectedTextColor,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Belgenizi yazmaya başlayın...',
+                  ),
                 ),
               ),
             ),
-            child: SafeArea(
+
+            // Pro Mobile Formatting Toolbar
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0E182F).withValues(alpha: 0.95) : Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark ? Colors.cyanAccent.withValues(alpha: 0.25) : const Color(0xFFCBD5E1),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black.withValues(alpha: 0.4) : const Color(0xFF0284C7).withValues(alpha: 0.08),
+                    blurRadius: 16,
+                  ),
+                ],
+              ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -456,8 +452,8 @@ class _DocsEditorScreenState extends State<DocsEditorScreen> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
