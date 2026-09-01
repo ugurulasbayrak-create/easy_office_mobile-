@@ -1,9 +1,11 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../core/conversion_engine.dart';
 import '../core/localization.dart';
 import '../core/models.dart';
@@ -16,16 +18,16 @@ import 'sheets_editor_screen.dart';
 import 'slides_editor_screen.dart';
 
 class SelectedConversionFile {
+  final String filePath;
   final String fileName;
   final String fileSize;
-  final String filePath;
   final File realFile;
   final bool isExternal;
 
   SelectedConversionFile({
+    required this.filePath,
     required this.fileName,
     required this.fileSize,
-    required this.filePath,
     required this.realFile,
     required this.isExternal,
   });
@@ -43,9 +45,14 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
   bool _isConverting = false;
   double _conversionProgress = 0.0;
   String _conversionStepText = '';
-  bool _isFinished = false;
 
-  // Her mod için bağımsız seçilen dosya saklama haritası (Hatalı dosya paylaşımını önler)
+  // AI Zenginleştirme Durumları
+  bool _isAiEnhanceEnabled = true;
+  bool _aiAutoSummary = true;
+  bool _aiAutoFormulas = true;
+  bool _aiTranslateTr = false;
+
+  // Her mod için bağımsız dosya ve sonuç saklama haritası
   final Map<String, SelectedConversionFile> _filesByMode = {};
   final Map<String, ConversionResult> _resultsByMode = {};
 
@@ -119,21 +126,21 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
       'id': 'csv_to_sheet',
       'title': 'CSV ➔ Excel (XLSX)',
       'shortName': 'CSV ➔ Excel',
-      'from': 'Virgülle Ayrılmış (.csv)',
-      'to': 'Excel Hesap Tablosu (.xlsx)',
-      'icon': Icons.grid_on_rounded,
+      'from': 'CSV Metin Tablosu (.csv)',
+      'to': 'Formüllü Excel (.xlsx)',
+      'icon': Icons.grid_view_rounded,
       'color': OfficeTheme.sheetColor,
       'extensions': ['csv', 'txt'],
       'fileType': FileType.custom,
       'targetType': DocumentType.sheet,
-      'sourceType': DocumentType.sheet,
+      'sourceType': DocumentType.doc,
     },
     {
       'id': 'pdf_to_slide',
-      'title': 'PDF ➔ PowerPoint / Slayt',
-      'shortName': 'PDF ➔ Slayt',
-      'from': 'PDF Sunum Belgesi (.pdf)',
-      'to': 'Düzenlenebilir Slayt (.pptx)',
+      'title': 'PDF ➔ PowerPoint (PPTX)',
+      'shortName': 'PDF ➔ Sunum',
+      'from': 'PDF Sayfaları (.pdf)',
+      'to': 'PowerPoint Slaytları (.pptx)',
       'icon': Icons.co_present_rounded,
       'color': OfficeTheme.slideColor,
       'extensions': ['pdf'],
@@ -143,10 +150,10 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
     },
     {
       'id': 'slide_to_pdf',
-      'title': 'Sunum (PPTX) ➔ PDF',
+      'title': 'PowerPoint ➔ PDF',
       'shortName': 'Sunum ➔ PDF',
       'from': 'PowerPoint (.pptx, .ppt)',
-      'to': 'Vektörel PDF Sunum (.pdf)',
+      'to': 'Sunum PDF Kitapçığı (.pdf)',
       'icon': Icons.slideshow_rounded,
       'color': OfficeTheme.slideColor,
       'extensions': ['pptx', 'ppt'],
@@ -155,38 +162,39 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
       'sourceType': DocumentType.slide,
     },
     {
-      'id': 'img_to_pdf',
-      'title': 'Görsel (JPG/PNG) ➔ PDF',
-      'shortName': 'Görsel ➔ PDF',
-      'from': 'Fotoğraf & Galeri (.jpg, .png)',
-      'to': 'Yüksek Çözünürlüklü PDF (.pdf)',
-      'icon': Icons.image_rounded,
-      'color': Colors.deepPurpleAccent,
-      'extensions': ['jpg', 'jpeg', 'png', 'webp', 'heic'],
-      'fileType': FileType.image,
-      'targetType': DocumentType.pdf,
-    },
-    {
       'id': 'pdf_to_txt',
       'title': 'PDF ➔ Düz Metin (TXT)',
       'shortName': 'PDF ➔ Metin',
-      'from': 'PDF Belgesi (.pdf)',
-      'to': 'Sade Metin Dosyası (.txt)',
-      'icon': Icons.notes_rounded,
-      'color': Colors.teal,
+      'from': 'PDF (.pdf)',
+      'to': 'Düz Metin (.txt)',
+      'icon': Icons.text_snippet_rounded,
+      'color': const Color(0xFF64748B),
       'extensions': ['pdf'],
       'fileType': FileType.custom,
       'targetType': DocumentType.doc,
       'sourceType': DocumentType.pdf,
     },
     {
+      'id': 'img_to_pdf',
+      'title': 'Fotoğraf / Tarama ➔ PDF',
+      'shortName': 'Görsel ➔ PDF',
+      'from': 'Fotoğraf / Belge (.jpg, .png)',
+      'to': 'A4 PDF Evrak (.pdf)',
+      'icon': Icons.add_photo_alternate_rounded,
+      'color': OfficeTheme.pdfColor,
+      'extensions': ['jpg', 'jpeg', 'png', 'webp'],
+      'fileType': FileType.image,
+      'targetType': DocumentType.pdf,
+      'sourceType': DocumentType.doc,
+    },
+    {
       'id': 'pdf_compress',
-      'title': 'PDF Boyutunu Küçült (Compress)',
-      'shortName': 'PDF Küçült',
-      'from': 'Büyük PDF Belgesi',
-      'to': '%58 Optimize PDF',
+      'title': 'PDF Boyut Küçültme (Sıkıştır)',
+      'shortName': 'PDF Sıkıştır',
+      'from': 'Büyük PDF Belgesi (.pdf)',
+      'to': 'Hafifletilmiş PDF (.pdf)',
       'icon': Icons.compress_rounded,
-      'color': Colors.amber.shade800,
+      'color': const Color(0xFF0D9488),
       'extensions': ['pdf'],
       'fileType': FileType.custom,
       'targetType': DocumentType.pdf,
@@ -204,54 +212,38 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
     return _resultsByMode[modeId];
   }
 
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
   Future<void> _pickFromPhoneStorage() async {
     final mode = _convertModes[_selectedModeIdx];
     final modeId = mode['id'] as String;
-    final extensions = mode['extensions'] as List<String>;
-    final fileType = mode['fileType'] as FileType;
+    final exts = (mode['extensions'] as List<String>);
 
     try {
-      FilePickerResult? result;
+      final result = await FilePicker.platform.pickFiles(
+        type: mode['fileType'] as FileType,
+        allowedExtensions: mode['fileType'] == FileType.custom ? exts : null,
+      );
 
-      if (fileType == FileType.image) {
-        result = await FilePicker.platform.pickFiles(
-          type: FileType.image,
-          allowMultiple: false,
-        );
-      } else {
-        result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: extensions,
-          allowMultiple: false,
-        );
-      }
-
-      if (result != null && result.files.isNotEmpty) {
-        final pickedFile = result.files.first;
-        if (pickedFile.path == null) {
-          throw Exception('Dosya yolu okunamadı.');
-        }
-
-        final file = File(pickedFile.path!);
-        final exists = await file.exists();
-        if (!exists) {
-          throw Exception('Seçilen dosya bulunamadı: ${pickedFile.name}');
-        }
-
-        final sizeInKb = (pickedFile.size / 1024).round();
-        final sizeStr = sizeInKb > 1024
-            ? '${(sizeInKb / 1024).toStringAsFixed(1)} MB'
-            : '$sizeInKb KB';
+      if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        final file = File(path);
+        final sizeBytes = await file.length();
+        final sizeStr = _formatFileSize(sizeBytes);
+        final name = result.files.single.name;
 
         setState(() {
           _filesByMode[modeId] = SelectedConversionFile(
-            fileName: pickedFile.name,
+            filePath: path,
+            fileName: name,
             fileSize: sizeStr,
-            filePath: pickedFile.path!,
             realFile: file,
             isExternal: true,
           );
-          _isFinished = false;
           _conversionProgress = 0.0;
           _resultsByMode.remove(modeId);
         });
@@ -259,18 +251,16 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Dosya Eklendi: ${pickedFile.name} ($sizeStr)'),
-            backgroundColor: OfficeTheme.sheetColor,
+            content: Text('Dosya seçildi: $name ($sizeStr)'),
+            backgroundColor: OfficeTheme.primaryBrand,
+            duration: const Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Dosya seçme hatası: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Dosya seçilemedi: $e')),
       );
     }
   }
@@ -279,47 +269,29 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
     final modeId = _convertModes[_selectedModeIdx]['id'] as String;
     try {
       final picker = ImagePicker();
-      final photo = await picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 95,
-      );
-
+      final photo = await picker.pickImage(source: ImageSource.camera);
       if (photo != null) {
         final file = File(photo.path);
-        final len = await file.length();
-        final sizeInKb = (len / 1024).round();
-        final sizeStr = sizeInKb > 1024
-            ? '${(sizeInKb / 1024).toStringAsFixed(1)} MB'
-            : '$sizeInKb KB';
+        final sizeBytes = await file.length();
+        final sizeStr = _formatFileSize(sizeBytes);
+        final name = 'Kamera_Tarama_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
         setState(() {
           _filesByMode[modeId] = SelectedConversionFile(
-            fileName: photo.name,
-            fileSize: sizeStr,
             filePath: photo.path,
+            fileName: name,
+            fileSize: sizeStr,
             realFile: file,
             isExternal: true,
           );
-          _isFinished = false;
           _conversionProgress = 0.0;
           _resultsByMode.remove(modeId);
         });
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Kameradan Belge Alındı: ${photo.name} ($sizeStr)'),
-            backgroundColor: OfficeTheme.sheetColor,
-          ),
-        );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Kamera erişim hatası: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Kamera açılamadı: $e')),
       );
     }
   }
@@ -327,115 +299,106 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
   void _showInAppDocSelector() {
     final mode = _convertModes[_selectedModeIdx];
     final modeId = mode['id'] as String;
-    final DocumentType? sourceType = mode['sourceType'] as DocumentType?;
-    final storage = OfficeStorage();
-    
-    // Yalnızca geçerli formattaki uygulama içi belgeleri filtrele
-    var docs = storage.documents;
-    if (sourceType != null) {
-      docs = docs.where((d) => d.type == sourceType).toList();
-    }
+    final targetSourceType = mode['sourceType'] as DocumentType?;
+    final docs = OfficeStorage().documents;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final compatibleDocs = targetSourceType != null
+        ? docs.where((d) => d.type == targetSourceType).toList()
+        : docs;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: (mode['color'] as Color).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.folder_shared_rounded, color: mode['color'] as Color, size: 20),
+                  Text(
+                    'Easy Belgelerimden Seç (${mode['shortName']})',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Uyumlu Belgeler (${mode['shortName']})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              if (docs.isEmpty)
+              const SizedBox(height: 12),
+              if (compatibleDocs.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
                     child: Text(
-                      'Bu dönüştürme moduna uygun kayıtlı belge bulunamadı.\n(Telefon hafızasından dosya seçebilirsiniz)',
+                      'Bu modla uyumlu (${mode['from']}) kayıtlı belge bulunamadı.\nTelefon hafızasından dosya seçebilirsiniz.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                      style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
                     ),
                   ),
                 )
               else
-                Flexible(
-                  child: ListView.builder(
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+                  child: ListView.separated(
                     shrinkWrap: true,
-                    itemCount: docs.length,
-                    itemBuilder: (context, i) {
-                      final d = docs[i];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    itemCount: compatibleDocs.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (c, i) {
+                      final d = compatibleDocs[i];
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: d.brandColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: Icon(d.icon, color: d.brandColor, size: 20),
                         ),
-                        child: ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: d.brandColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(d.icon, color: d.brandColor, size: 20),
-                          ),
-                          title: Text(d.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          subtitle: Text('${d.typeLabel} • ${d.fileSizeKb} KB', style: const TextStyle(fontSize: 11)),
-                          trailing: const Icon(Icons.add_circle_outline_rounded, size: 20, color: OfficeTheme.primaryBrand),
-                          onTap: () async {
-                            final tempDir = Directory.systemTemp;
-                            final tempFile = File('${tempDir.path}/${d.title}');
-                            if (d.data is String) {
-                              await tempFile.writeAsString(d.data as String);
-                            } else {
-                              await tempFile.writeAsString(d.previewContent);
-                            }
+                        title: Text(d.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        subtitle: Text('${d.typeLabel} • ${d.fileSizeKb} KB', style: const TextStyle(fontSize: 11)),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                        onTap: () async {
+                          final tempDir = await getTemporaryDirectory();
+                          final ext = d.type == DocumentType.doc
+                              ? 'docx'
+                              : d.type == DocumentType.sheet
+                                  ? 'xlsx'
+                                  : d.type == DocumentType.slide
+                                      ? 'pptx'
+                                      : 'pdf';
+                          final tempFile = File('${tempDir.path}/${d.title}.$ext');
+                          if (d.data is String) {
+                            await tempFile.writeAsString(d.data as String);
+                          } else {
+                            await tempFile.writeAsString(d.previewContent);
+                          }
 
-                            setState(() {
-                              _filesByMode[modeId] = SelectedConversionFile(
-                                fileName: d.title,
-                                fileSize: '${d.fileSizeKb} KB',
-                                filePath: 'Easy Office / ${d.title}',
-                                realFile: tempFile,
-                                isExternal: false,
-                              );
-                              _isFinished = false;
-                              _conversionProgress = 0.0;
-                              _resultsByMode.remove(modeId);
-                            });
+                          setState(() {
+                            _filesByMode[modeId] = SelectedConversionFile(
+                              filePath: tempFile.path,
+                              fileName: '${d.title}.$ext',
+                              fileSize: '${d.fileSizeKb} KB',
+                              realFile: tempFile,
+                              isExternal: false,
+                            );
+                            _conversionProgress = 0.0;
+                            _resultsByMode.remove(modeId);
+                          });
 
-                            if (!ctx.mounted) return;
-                            Navigator.of(ctx).pop();
-                          },
-                        ),
+                          if (!ctx.mounted) return;
+                          Navigator.of(ctx).pop();
+                        },
                       );
                     },
                   ),
@@ -452,7 +415,7 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
     if (selected == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lütfen önce dönüştürülecek bir kaynak dosya seçin!'),
+          content: Text('Lütfen önce dönüştürülecek bir dosya seçin!'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -461,9 +424,8 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
 
     setState(() {
       _isConverting = true;
-      _conversionProgress = 0.12;
+      _conversionProgress = 0.15;
       _conversionStepText = 'Kaynak dosya baytları analiz ediliyor...';
-      _isFinished = false;
     });
 
     final mode = _convertModes[_selectedModeIdx];
@@ -473,7 +435,7 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
       setState(() {
-        _conversionProgress = 0.45;
+        _conversionProgress = 0.50;
         _conversionStepText = 'İçerik, tablolar ve vektör sayfalar işleniyor...';
       });
 
@@ -521,6 +483,22 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
         throw Exception(result.message);
       }
 
+      // AI Akıllı Analiz ve Zenginleştirme Adımı
+      if (_isAiEnhanceEnabled) {
+        if (!mounted) return;
+        setState(() {
+          _conversionProgress = 0.85;
+          _conversionStepText = '🤖 Easy AI belgeyi analiz ediyor, özet ve formülleri optimize ediyor...';
+        });
+
+        result = await RealConversionEngine.enhanceWithAi(
+          result,
+          summarize: _aiAutoSummary,
+          autoFormulas: _aiAutoFormulas,
+          translateToTr: _aiTranslateTr,
+        );
+      }
+
       if (result.convertedDocument != null) {
         OfficeStorage().addDocument(result.convertedDocument!);
       }
@@ -529,8 +507,9 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
       setState(() {
         _isConverting = false;
         _conversionProgress = 1.0;
-        _conversionStepText = 'Dönüştürme başarıyla tamamlandı!';
-        _isFinished = true;
+        _conversionStepText = _isAiEnhanceEnabled
+            ? '✨ AI destekli akıllı dönüştürme tamamlandı!'
+            : 'Dönüştürme başarıyla tamamlandı!';
         _resultsByMode[modeId] = result;
       });
 
@@ -563,21 +542,13 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
     final doc = res!.convertedDocument!;
 
     if (doc.type == DocumentType.doc) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => DocsEditorScreen(document: doc)),
-      );
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => DocsEditorScreen(document: doc)));
     } else if (doc.type == DocumentType.sheet) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => SheetsEditorScreen(document: doc)),
-      );
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => SheetsEditorScreen(document: doc)));
     } else if (doc.type == DocumentType.slide) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => SlidesEditorScreen(document: doc)),
-      );
-    } else if (doc.type == DocumentType.pdf) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PdfViewerScreen(document: doc)),
-      );
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => SlidesEditorScreen(document: doc)));
+    } else {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => PdfViewerScreen(document: doc)));
     }
   }
 
@@ -602,18 +573,17 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
     setState(() {
       _filesByMode.remove(modeId);
       _resultsByMode.remove(modeId);
-      _isFinished = false;
       _conversionProgress = 0.0;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final mode = _convertModes[_selectedModeIdx];
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mode = _convertModes[_selectedModeIdx];
+    final modeColor = mode['color'] as Color;
     final selectedFile = _currentSelectedFile;
     final result = _currentResult;
-    final modeColor = mode['color'] as Color;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -690,8 +660,7 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
                       onTap: () {
                         setState(() {
                           _selectedModeIdx = idx;
-                          _isFinished = _resultsByMode.containsKey(itemId);
-                          _conversionProgress = _isFinished ? 1.0 : 0.0;
+                          _conversionProgress = _resultsByMode.containsKey(itemId) ? 1.0 : 0.0;
                         });
                       },
                       child: Container(
@@ -805,6 +774,95 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
                         height: 1.5,
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // 🤖 YAPAY ZEKA (EASY AI) AKILLI SEÇENEKLER KARTI
+              GlassCard(
+                isDark: isDark,
+                radius: 18,
+                padding: const EdgeInsets.all(16),
+                borderColor: _isAiEnhanceEnabled ? OfficeTheme.cyanGlow.withValues(alpha: 0.5) : null,
+                fillColor: _isAiEnhanceEnabled
+                    ? (isDark ? const Color(0xFF0284C7).withValues(alpha: 0.18) : const Color(0xFF0284C7).withValues(alpha: 0.08))
+                    : null,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [OfficeTheme.aiGradientStart, OfficeTheme.aiGradientEnd],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: OfficeTheme.aiColor.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Easy AI Akıllı Dönüştürücü',
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                              ),
+                              Text(
+                                'Özet çıkarma, formül onarımı ve terminoloji analizi',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: _isAiEnhanceEnabled,
+                          activeThumbColor: OfficeTheme.cyanGlow,
+                          onChanged: (val) => setState(() => _isAiEnhanceEnabled = val),
+                        ),
+                      ],
+                    ),
+                    if (_isAiEnhanceEnabled) ...[
+                      const Divider(height: 20),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilterChip(
+                            label: const Text('📝 Yönetici Özeti Çıkar', style: TextStyle(fontSize: 11)),
+                            selected: _aiAutoSummary,
+                            selectedColor: OfficeTheme.cyanGlow.withValues(alpha: isDark ? 0.35 : 0.2),
+                            onSelected: (val) => setState(() => _aiAutoSummary = val),
+                          ),
+                          FilterChip(
+                            label: const Text('📊 Tablo & Formülleri Onar', style: TextStyle(fontSize: 11)),
+                            selected: _aiAutoFormulas,
+                            selectedColor: OfficeTheme.sheetColor.withValues(alpha: isDark ? 0.35 : 0.2),
+                            onSelected: (val) => setState(() => _aiAutoFormulas = val),
+                          ),
+                          FilterChip(
+                            label: const Text('🌐 Türkçe Uyarlama', style: TextStyle(fontSize: 11)),
+                            selected: _aiTranslateTr,
+                            selectedColor: OfficeTheme.aiColor.withValues(alpha: isDark ? 0.35 : 0.2),
+                            onSelected: (val) => setState(() => _aiTranslateTr = val),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1041,6 +1099,7 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
                   ),
                 ),
               ] else if (result != null && result.success) ...[
+                // Ana Sonuç Kartı
                 GlassCard(
                   isDark: isDark,
                   radius: 18,
@@ -1103,6 +1162,117 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
                     ],
                   ),
                 ),
+
+                // 🤖 EASY AI AKILLI ANALİZ & ÖZET RAPORU KARTI
+                if (result.isAiEnhanced) ...[
+                  const SizedBox(height: 14),
+                  GlassCard(
+                    isDark: isDark,
+                    radius: 18,
+                    padding: const EdgeInsets.all(16),
+                    borderColor: OfficeTheme.cyanGlow.withValues(alpha: 0.6),
+                    fillColor: isDark ? const Color(0xFF0F1E38).withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.85),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [OfficeTheme.aiGradientStart, OfficeTheme.aiGradientEnd],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Easy AI Analiz & Özet',
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                            if (result.aiDetectedCategory != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: OfficeTheme.primaryBrand.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: OfficeTheme.cyanGlow.withValues(alpha: 0.4)),
+                                ),
+                                child: Text(
+                                  result.aiDetectedCategory!,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: OfficeTheme.cyanGlow,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (result.aiSummary != null && result.aiSummary!.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0B132B) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: Text(
+                              result.aiSummary!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.5,
+                                color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (result.aiKeyInsights != null && result.aiKeyInsights!.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          ...result.aiKeyInsights!.map((insight) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: Text(
+                                  insight,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    height: 1.4,
+                                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                  ),
+                                ),
+                              )),
+                        ],
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            ),
+                            onPressed: () {
+                              final textToCopy = '${result.aiSummary ?? ""}\n\n${result.aiKeyInsights?.join("\n") ?? ""}';
+                              Clipboard.setData(ClipboardData(text: textToCopy));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('AI Özeti panoya kopyalandı!')),
+                              );
+                            },
+                            icon: const Icon(Icons.copy_rounded, size: 14),
+                            label: const Text('Özeti Kopyala', style: TextStyle(fontSize: 11)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ] else ...[
                 Container(
                   decoration: BoxDecoration(
