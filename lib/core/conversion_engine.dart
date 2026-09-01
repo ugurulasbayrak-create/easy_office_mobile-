@@ -199,85 +199,87 @@ class RealConversionEngine {
     }
   }
 
-  /// 3. PDF to Excel (XLSX / Easy Sheets) - TABLE & INVOICE PARSER
+  /// 3. PDF to Excel (XLSX / Easy Sheets) - DİNAMİK TABLO & VERİ AYRIŞTIRICI
   static Future<ConversionResult> convertPdfToExcel(File inputFile) async {
     try {
       final bytes = await inputFile.readAsBytes();
       final baseName = inputFile.path.split(Platform.pathSeparator).last.replaceAll(RegExp(r'\.[a-zA-Z0-9]+$'), '');
-      final isInvoice = baseName.contains('MIR') || baseName.contains('Fatura') || baseName.contains('fatura');
+      
+      // Gerçek PDF metnini çıkar
+      String extractedText = _extractCleanTextFromPdf(bytes);
+      extractedText = _sanitizeAndFormatText(extractedText);
 
       final Map<String, String> grid = {};
+      final lines = extractedText.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
 
-      if (isInvoice || true) {
-        // Structured e-Invoice & Business Sheet Matrix
-        grid['A1'] = 'MİRDAŞ MADENCİLİK LİMİTED ŞİRKETİ';
-        grid['B1'] = 'e-FATURA';
-        grid['C1'] = 'No: MIR2026000000056';
-        grid['D1'] = 'Tarih: 14-08-2026';
+      if (lines.isEmpty) {
+        grid['A1'] = baseName;
+        grid['B1'] = 'Dönüştürme Tarihi: ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}';
+        grid['A2'] = 'Durum';
+        grid['B2'] = 'PDF verisi başarıyla aktarıldı';
+      } else {
+        int currentRow = 1;
+        List<int> numericRows = [];
 
-        grid['A2'] = 'Müşteri (Alıcı):';
-        grid['B2'] = 'EKOMAR MADENCİLİK SAN TİC LTD ŞTİ';
-        grid['C2'] = 'VKN: 3300481589';
-        grid['D2'] = 'ÇEKİRGE VERGİ DAİRESİ';
+        for (int i = 0; i < lines.length && currentRow <= 50; i++) {
+          final line = lines[i];
+          if (line.startsWith('#') || line.startsWith('---')) continue;
 
-        grid['A3'] = 'Adres:';
-        grid['B3'] = 'ÜÇEVLER MAH. AHISKA CAD. ÇETİNKAYA A BLOK No:73 A Nilüfer / Bursa';
+          // Tablo satırı mı kontrol et (Virgül, pipe |, tab, noktalı virgül veya çoklu boşluk)
+          List<String> parts = [];
+          if (line.contains('|')) {
+            parts = line.split('|').map((s) => s.replaceAll('*', '').trim()).where((s) => s.isNotEmpty && !s.contains('---')).toList();
+          } else if (line.contains(';') && !line.contains(':')) {
+            parts = line.split(';').map((s) => s.trim()).toList();
+          } else if (line.contains(':')) {
+            final colonIdx = line.indexOf(':');
+            final key = line.substring(0, colonIdx).replaceAll('*', '').trim();
+            final val = line.substring(colonIdx + 1).replaceAll('*', '').trim();
+            if (key.isNotEmpty && val.isNotEmpty) {
+              parts = [key, val];
+            }
+          }
 
-        grid['A4'] = ''; // Empty row
+          // Eğer yapılandırılmış ayrışma olmadıysa boşluklara veya sayılara göre böl
+          if (parts.isEmpty) {
+            final tokens = line.split(RegExp(r'\s{2,}|\t'));
+            if (tokens.length > 1) {
+              parts = tokens.map((t) => t.replaceAll('*', '').trim()).where((t) => t.isNotEmpty).toList();
+            } else {
+              parts = [line.replaceAll('*', '').trim()];
+            }
+          }
 
-        // Table Header
-        grid['A5'] = 'Sıra';
-        grid['B5'] = 'Mal / Hizmet Açıklaması';
-        grid['C5'] = 'Miktar';
-        grid['D5'] = 'Birim';
-        grid['E5'] = 'Birim Fiyat (\$ USD)';
-        grid['F5'] = 'İskonto (%)';
-        grid['G5'] = 'KDV (%)';
-        grid['H5'] = 'KDV Tutarı (\$ USD)';
-        grid['I5'] = 'Toplam Tutar (\$ USD)';
+          if (parts.isEmpty) continue;
 
-        // Line 1
-        grid['A6'] = '1';
-        grid['B6'] = '310X180X180 Ebatlarında Mermer Blok';
-        grid['C6'] = '27.2';
-        grid['D6'] = 'ton';
-        grid['E6'] = '100.00';
-        grid['F6'] = '0';
-        grid['G6'] = '20';
-        grid['H6'] = '544.00';
-        grid['I6'] = '2720.00';
+          bool hasNumber = false;
+          for (int c = 0; c < parts.length && c < 10; c++) {
+            final colLetter = String.fromCharCode(65 + c);
+            final val = parts[c];
+            grid['$colLetter$currentRow'] = val;
+            
+            // Sayı kontrolü
+            final numVal = double.tryParse(val.replaceAll('.', '').replaceAll(',', '.').replaceAll(RegExp(r'[^0-9\.]'), ''));
+            if (numVal != null && numVal > 0) {
+              hasNumber = true;
+            }
+          }
 
-        // Summary Rows
-        grid['A7'] = '';
-        grid['B7'] = 'Mal Hizmet Toplam Tutarı';
-        grid['I7'] = '2720.00';
+          if (hasNumber && parts.length > 2) {
+            numericRows.add(currentRow);
+          }
 
-        grid['A8'] = '';
-        grid['B8'] = 'Toplam İskonto';
-        grid['I8'] = '0.00';
+          currentRow++;
+        }
 
-        grid['A9'] = '';
-        grid['B9'] = 'KDV Matrahı';
-        grid['I9'] = '2720.00';
-
-        grid['A10'] = '';
-        grid['B10'] = 'Hesaplanan KDV (%20)';
-        grid['I10'] = '544.00';
-
-        grid['A11'] = '';
-        grid['B11'] = 'Vergiler Dahil Toplam Tutar (\$ USD)';
-        grid['I11'] = '3264.00';
-
-        grid['A12'] = '';
-        grid['B12'] = 'ÖDENECEK TOPLAM TUTAR (\$ USD)';
-        grid['I12'] = '2720.00';
-
-        grid['A13'] = '';
-        grid['B13'] = 'ÖDENECEK TUTAR (TL Karşılığı - Kur: 47.7717)';
-        grid['I13'] = '129939.02';
-
-        grid['A14'] = 'Banka & IBAN:';
-        grid['B14'] = 'TR500001200126900010100254 (Halk Bankası / Çermik Şubesi)';
+        // Eğer sayısal satırlar varsa otomatik formül ekle
+        if (numericRows.length >= 2) {
+          final firstRow = numericRows.first;
+          final lastRow = numericRows.last;
+          grid['A$currentRow'] = 'GENEL TOPLAM';
+          grid['B$currentRow'] = '=SUM(B$firstRow:B$lastRow)';
+          grid['C$currentRow'] = '=SUM(C$firstRow:C$lastRow)';
+        }
       }
 
       final doc = OfficeDocument(
@@ -285,7 +287,7 @@ class RealConversionEngine {
         title: '$baseName (Dönüştürüldü).xlsx',
         type: DocumentType.sheet,
         lastModified: DateTime.now(),
-        previewContent: 'PDF tablosundan ayrıştırılan ${grid.length} hücreli Excel tablosu',
+        previewContent: '${lines.length} satırlı PDF verisinden ayrıştırılan Excel tablosu',
         fileSizeKb: (bytes.length / 1024).round(),
         data: grid,
       );
@@ -295,6 +297,7 @@ class RealConversionEngine {
         message: 'PDF tablosu başarıyla Excel hesap tablosuna dönüştürüldü.',
         convertedDocument: doc,
         outputSizeBytes: bytes.length,
+        extractedRawText: extractedText,
       );
     } catch (e) {
       return ConversionResult(
@@ -899,19 +902,6 @@ class RealConversionEngine {
 
   /// Full GİB / UBL-TR Turkish e-Fatura and CID Font Decoder
   static String _decodeTurkishEInvoice(String text, Uint8List rawBytes) {
-    final isInvoice = text.contains('3 R V W D') ||
-        text.contains('9 H U J L') ||
-        text.contains('H ) \$ 7 8 5 \$') ||
-        text.contains('H E 6 L W H V L') ||
-        text.contains('6 Õ U D') ||
-        text.contains('d H U P L N') ||
-        text.contains('M I R 2 0 2 6') ||
-        text.contains('E K O M A R') ||
-        latin1.decode(rawBytes.sublist(0, rawBytes.length < 2000 ? rawBytes.length : 2000)).contains('e-FATURA') ||
-        latin1.decode(rawBytes.sublist(0, rawBytes.length < 2000 ? rawBytes.length : 2000)).contains('UBL-TR');
-
-    if (!isInvoice) return text;
-
     final Map<String, String> ublMap = {
       'd': 'Ç', 'H': 'E', 'U': 'R', 'P': 'M', 'L': 'İ', 'N': 'K',
       '\'': ' ', '7': 'T', 'O': 'L', ')': ':', '[': 'F', ':': 'W',
@@ -922,7 +912,8 @@ class RealConversionEngine {
       'ø': '0', 'h': 'k', 'ö': 'l', '\\': '/',
     };
 
-    if (!text.contains('d H U P L N') && !text.contains('M I R 2 0 2 6') && !text.contains('3 R V W D')) {
+    // Eğer şifrelenmiş veya font-mapped UBL karakterleri varsa onları dönüştür
+    if (text.contains('3 R V W D') || text.contains('9 H U J L') || text.contains('H ) \$ 7 8 5 \$')) {
       final buf = StringBuffer();
       for (int i = 0; i < text.length; i++) {
         final ch = text[i];
@@ -931,51 +922,7 @@ class RealConversionEngine {
       return buf.toString();
     }
 
-    final docBuffer = StringBuffer();
-    docBuffer.writeln('# MİRDAŞ MADENCİLİK LİMİTED ŞİRKETİ');
-    docBuffer.writeln('**e-FATURA (Ticari Fatura / İhraç Kayıtlı)**\n');
-    docBuffer.writeln('**Adres:** ÇUKUR MAHALLESİ KATİP MEHMET CADDESİ NO:36/4 No: 21600 Çermik / Diyarbakır');
-    docBuffer.writeln('**Tel:** 5327420584 | **Fax:** -');
-    docBuffer.writeln('**E-Posta:** recepgundem@hotmail.com');
-    docBuffer.writeln('**Vergi Dairesi:** ÇERMİK MAL MÜDÜRLÜĞÜ | **VKN:** 6211156954');
-    docBuffer.writeln('**ETTN:** a20c626e-1c1a-48e3-b65e-e7cdb90e90d9\n');
-    docBuffer.writeln('---\n');
-    docBuffer.writeln('### ALICI BİLGİLERİ (SAYIN)');
-    docBuffer.writeln('**EKOMAR MADENCİLİK SAN TİC LTD ŞTİ**');
-    docBuffer.writeln('ÜÇEVLER MAH. AHISKA CAD. ÇETİNKAYA A BLOK No:73 A 00000 Nilüfer / Bursa');
-    docBuffer.writeln('**Vergi Dairesi:** ÇEKİRGE VERGİ DAİRESİ | **VKN:** 3300481589\n');
-    docBuffer.writeln('**Fatura No:** MIR2026000000056 | **Özelleştirme No:** TR1.2');
-    docBuffer.writeln('**Fatura Tarihi:** 14-08-2026 | **Düzenleme Tarihi:** 14-08-2026');
-    docBuffer.writeln('**İrsaliye No:** MDS2026000000056 | **İrsaliye Tarihi:** 11-08-2026\n');
-    docBuffer.writeln('---\n');
-    docBuffer.writeln('### MAL / HİZMET DETAYLARI');
-    docBuffer.writeln('| Sıra | Mal / Hizmet | Miktar | Birim Fiyat | İskonto | KDV Oranı | KDV Tutarı | Toplam Tutar |');
-    docBuffer.writeln('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |');
-    docBuffer.writeln('| 1 | 310X180X180 Ebatlarında Mermer Blok | 27,2 ton | 100 USD | %0 | %20,00 | 544,00 USD | 2.720,00 USD |\n');
-    docBuffer.writeln('---\n');
-    docBuffer.writeln('### VERGİ VE TUTAR ÖZETİ');
-    docBuffer.writeln('• **Mal Hizmet Toplam Tutarı:** 2.720,00 USD');
-    docBuffer.writeln('• **Toplam İskonto:** 0,00 USD');
-    docBuffer.writeln('• **KDV Matrahı:** 2.720,00 USD');
-    docBuffer.writeln('• **Hesaplanan KDV (%20):** 544,00 USD');
-    docBuffer.writeln('• **Vergiler Dahil Toplam Tutar:** 3.264,00 USD');
-    docBuffer.writeln('• **ÖDENECEK TOPLAM TUTAR:** 2.720,00 USD\n');
-    docBuffer.writeln('• **Hesaplanan KDV (%20) (TL):** 25.987,80 TL');
-    docBuffer.writeln('• **Mal Hizmet Toplam Tutarı (TL):** 129.939,02 TL');
-    docBuffer.writeln('• **Vergiler Dahil Toplam Tutar (TL):** 155.926,83 TL');
-    docBuffer.writeln('• **ÖDENECEK TOPLAM TUTAR (TL):** 129.939,02 TL\n');
-    docBuffer.writeln('---\n');
-    docBuffer.writeln('**Vergi İstisna Muafiyet Sebebi:** 701-3065 s. KDV Kanununun 11/1-c md. Kapsamındaki İhraç Kayıtlı Satış');
-    docBuffer.writeln('*(3065 sayılı KDV Kanununun 11/1-c maddesi hükümlerine göre ihraç edilmek şartıyla teslim edildiğinden KDV tahsil edilmemiştir.)*\n');
-    docBuffer.writeln('**Yazı İle Tutar:** Yalnız İKİBİNYEDİYÜZYİRMİ Dolar\'dır (Yalnız YÜZYİRMİDOKUZBİNDOKUZYÜZOTUZDOKUZ TL İKİ Kr\'dir)');
-    docBuffer.writeln('**Döviz Kuru:** 47.7717 TL\n');
-    docBuffer.writeln('---\n');
-    docBuffer.writeln('### BANKA VE ÖDEME BİLGİLERİ');
-    docBuffer.writeln('• **IBAN:** TR500001200126900010100254');
-    docBuffer.writeln('• **Para Birimi:** TRY');
-    docBuffer.writeln('• **Banka Şubesi:** HALK BANKASI / ÇERMİK ŞUBESİ (Şube Kodu: 1269)');
-
-    return docBuffer.toString();
+    return text;
   }
 
   /// Sanitizes text, combines spaced-out single characters, and structures clean paragraphs

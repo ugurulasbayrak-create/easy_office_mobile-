@@ -377,9 +377,19 @@ class _FileConverterScreenState extends State<FileConverterScreen> {
                                   : d.type == DocumentType.slide
                                       ? 'pptx'
                                       : 'pdf';
-                          final tempFile = File('${tempDir.path}/${d.title}.$ext');
+                          final uniqueTime = DateTime.now().millisecondsSinceEpoch;
+                          final tempFile = File('${tempDir.path}/${d.title}_$uniqueTime.$ext');
+
                           if (d.data is String) {
-                            await tempFile.writeAsString(d.data as String);
+                            final srcPath = d.data as String;
+                            final srcFile = File(srcPath);
+                            if (await srcFile.exists()) {
+                              await srcFile.copy(tempFile.path);
+                            } else {
+                              await tempFile.writeAsString(srcPath);
+                            }
+                          } else if (d.data is List<int>) {
+                            await tempFile.writeAsBytes(d.data as List<int>);
                           } else {
                             await tempFile.writeAsString(d.previewContent);
                           }
