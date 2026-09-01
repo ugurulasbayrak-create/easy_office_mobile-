@@ -1,0 +1,307 @@
+import 'package:flutter/material.dart';
+
+enum AppLanguage { turkish, english, german, spanish }
+
+class LanguageProvider extends ChangeNotifier {
+  static final LanguageProvider _instance = LanguageProvider._internal();
+  factory LanguageProvider() => _instance;
+
+  LanguageProvider._internal();
+
+  AppLanguage _currentLanguage = AppLanguage.turkish;
+
+  AppLanguage get currentLanguage => _currentLanguage;
+
+  String get languageCode {
+    switch (_currentLanguage) {
+      case AppLanguage.turkish:
+        return 'tr';
+      case AppLanguage.english:
+        return 'en';
+      case AppLanguage.german:
+        return 'de';
+      case AppLanguage.spanish:
+        return 'es';
+    }
+  }
+
+  String get languageName {
+    switch (_currentLanguage) {
+      case AppLanguage.turkish:
+        return 'Türkçe';
+      case AppLanguage.english:
+        return 'English';
+      case AppLanguage.german:
+        return 'Deutsch';
+      case AppLanguage.spanish:
+        return 'Español';
+    }
+  }
+
+  void setLanguage(AppLanguage lang) {
+    if (_currentLanguage != lang) {
+      _currentLanguage = lang;
+      notifyListeners();
+    }
+  }
+
+  static const Map<String, Map<String, String>> _localizedValues = {
+    'tr': {
+      'app_title': 'Easy Office',
+      'nav_home': 'Ana Sayfa',
+      'nav_converter': 'Dönüştürücü',
+      'nav_tools': 'PDF & OCR',
+      'nav_ai': 'Easy AI',
+      'nav_templates': 'Şablonlar',
+      'search_hint': 'Belge, tablo veya sunum ara...',
+      'recent_files': 'Son Dosyalar',
+      'quick_doc': 'Belge',
+      'quick_sheet': 'Tablo',
+      'quick_slide': 'Sunum',
+      'quick_scan': 'Kamera OCR',
+      'quick_convert': 'Dönüştür',
+      'filter_all': 'Tümü',
+      'filter_doc': 'DOC',
+      'filter_xls': 'XLS',
+      'filter_ppt': 'PPT',
+      'filter_pdf': 'PDF',
+      'no_files': 'Henüz dosya bulunmuyor.',
+      'save_success': 'Başarıyla kaydedildi!',
+      'words': 'Kelime',
+      'chars': 'Karakter',
+      'read_time': 'dakika okuma',
+      'digital_signature': 'Dijital İmza Paneli',
+      'digital_signature_sub': 'Parmağınızla PDF belgelerini imzalayın',
+      'ocr_scanner': 'Kamera & Belge Tarayıcı',
+      'ocr_scanner_sub': 'Kamerayla çekip düzenlenebilir metne aktarın',
+      'camera_scan': 'Kamerayı Aç & Tara',
+      'gallery_pick': 'Galeriden Belge Seç',
+      'contrast_filter': 'Yüksek Kontrast Filtresi',
+      'extracting_text': 'Yapay zeka metinleri okuyor...',
+      'copy_text': 'Metni Kopyala',
+      'create_doc_from_scan': 'Yeni Belgeye Aktar',
+      'converter_title': 'Dosya Format Dönüştürücü',
+      'converter_sub': 'Word, Excel, PDF, PPT ve Görseller arası hızlı çevirici',
+      'select_file': 'Dönüştürülecek Dosyayı Seçin',
+      'convert_btn': 'Dönüştür & İndir',
+      'converting': 'Dönüştürülüyor...',
+      'conversion_done': 'Dönüştürme Tamamlandı!',
+      'word_to_pdf': 'Word (DOCX) ➔ PDF',
+      'pdf_to_word': 'PDF ➔ Word (DOCX)',
+      'excel_to_pdf': 'Excel (XLSX) ➔ PDF',
+      'csv_to_excel': 'CSV ➔ Excel (XLSX)',
+      'ppt_to_pdf': 'Sunum (PPTX) ➔ PDF',
+      'img_to_pdf': 'Görsel (JPG/PNG) ➔ PDF',
+      'pdf_to_img': 'PDF ➔ Görsel Galeri',
+      'compress_pdf': 'PDF Boyutunu Küçült',
+      'merge_pdf': 'PDF Dosyalarını Birleştir',
+      'split_pdf': 'PDF Sayfalarını Ayır',
+      'protect_pdf': 'PDF Şifreleme & Kilitleme',
+      'txt_to_pdf': 'Metin (TXT) ➔ PDF',
+      'language_select': 'Dil Seçimi',
+      'theme_toggle': 'Tema Değiştir',
+      'share': 'Paylaş',
+      'delete': 'Sil',
+      'cancel': 'İptal',
+      'apply': 'Uygula',
+      'clear': 'Temizle',
+      'sign_pdf': 'PDF İmzala',
+      'signed': 'İmzalandı ✓',
+      'not_signed': 'İmza Yok',
+    },
+    'en': {
+      'app_title': 'Easy Office',
+      'nav_home': 'Home',
+      'nav_converter': 'Converter',
+      'nav_tools': 'PDF & OCR',
+      'nav_ai': 'Easy AI',
+      'nav_templates': 'Templates',
+      'search_hint': 'Search documents, sheets, slides...',
+      'recent_files': 'Recent Files',
+      'quick_doc': 'Doc',
+      'quick_sheet': 'Sheet',
+      'quick_slide': 'Slide',
+      'quick_scan': 'Camera OCR',
+      'quick_convert': 'Convert',
+      'filter_all': 'All',
+      'filter_doc': 'DOC',
+      'filter_xls': 'XLS',
+      'filter_ppt': 'PPT',
+      'filter_pdf': 'PDF',
+      'no_files': 'No documents found.',
+      'save_success': 'Saved successfully!',
+      'words': 'Words',
+      'chars': 'Chars',
+      'read_time': 'min read',
+      'digital_signature': 'Digital Signature Pad',
+      'digital_signature_sub': 'Sign PDF documents with your finger',
+      'ocr_scanner': 'Camera & Doc Scanner',
+      'ocr_scanner_sub': 'Capture with camera and convert to text',
+      'camera_scan': 'Open Camera & Scan',
+      'gallery_pick': 'Pick from Gallery',
+      'contrast_filter': 'High-Contrast B&W Filter',
+      'extracting_text': 'AI extracting text from image...',
+      'copy_text': 'Copy Text',
+      'create_doc_from_scan': 'Transfer to Doc',
+      'converter_title': 'File Format Converter',
+      'converter_sub': 'Convert between Word, Excel, PDF, PPT & Images',
+      'select_file': 'Select File to Convert',
+      'convert_btn': 'Convert & Download',
+      'converting': 'Converting...',
+      'conversion_done': 'Conversion Completed!',
+      'word_to_pdf': 'Word (DOCX) ➔ PDF',
+      'pdf_to_word': 'PDF ➔ Word (DOCX)',
+      'excel_to_pdf': 'Excel (XLSX) ➔ PDF',
+      'csv_to_excel': 'CSV ➔ Excel (XLSX)',
+      'ppt_to_pdf': 'Slides (PPTX) ➔ PDF',
+      'img_to_pdf': 'Images (JPG/PNG) ➔ PDF',
+      'pdf_to_img': 'PDF ➔ Image Gallery',
+      'compress_pdf': 'Compress PDF Size',
+      'merge_pdf': 'Merge PDF Files',
+      'split_pdf': 'Split PDF Pages',
+      'protect_pdf': 'Protect & Encrypt PDF',
+      'txt_to_pdf': 'Text (TXT) ➔ PDF',
+      'language_select': 'Select Language',
+      'theme_toggle': 'Toggle Theme',
+      'share': 'Share',
+      'delete': 'Delete',
+      'cancel': 'Cancel',
+      'apply': 'Apply',
+      'clear': 'Clear',
+      'sign_pdf': 'Sign PDF',
+      'signed': 'Signed ✓',
+      'not_signed': 'Not Signed',
+    },
+    'de': {
+      'app_title': 'Easy Office',
+      'nav_home': 'Startseite',
+      'nav_converter': 'Konverter',
+      'nav_tools': 'PDF & OCR',
+      'nav_ai': 'Easy AI',
+      'nav_templates': 'Vorlagen',
+      'search_hint': 'Dokumente, Tabellen, Folien suchen...',
+      'recent_files': 'Letzte Dateien',
+      'quick_doc': 'Dokument',
+      'quick_sheet': 'Tabelle',
+      'quick_slide': 'Folie',
+      'quick_scan': 'Kamera OCR',
+      'quick_convert': 'Konvertieren',
+      'filter_all': 'Alle',
+      'filter_doc': 'DOC',
+      'filter_xls': 'XLS',
+      'filter_ppt': 'PPT',
+      'filter_pdf': 'PDF',
+      'no_files': 'Keine Dateien gefunden.',
+      'save_success': 'Erfolgreich gespeichert!',
+      'words': 'Wörter',
+      'chars': 'Zeichen',
+      'read_time': 'Min. Lesezeit',
+      'digital_signature': 'Digitale Signatur',
+      'digital_signature_sub': 'PDFs mit dem Finger unterschreiben',
+      'ocr_scanner': 'Kamera & Dokumentenscanner',
+      'ocr_scanner_sub': 'Mit der Kamera erfassen und in Text umwandeln',
+      'camera_scan': 'Kamera öffnen & Scannen',
+      'gallery_pick': 'Aus Galerie wählen',
+      'contrast_filter': 'Schwarzweiß-Kontrastfilter',
+      'extracting_text': 'KI extrahiert Text...',
+      'copy_text': 'Text kopieren',
+      'create_doc_from_scan': 'In Dokument übertragen',
+      'converter_title': 'Dateiformat-Konverter',
+      'converter_sub': 'Konvertieren zwischen Word, Excel, PDF, PPT & Bildern',
+      'select_file': 'Datei zum Konvertieren auswählen',
+      'convert_btn': 'Konvertieren & Speichern',
+      'converting': 'Wird konvertiert...',
+      'conversion_done': 'Konvertierung abgeschlossen!',
+      'word_to_pdf': 'Word (DOCX) ➔ PDF',
+      'pdf_to_word': 'PDF ➔ Word (DOCX)',
+      'excel_to_pdf': 'Excel (XLSX) ➔ PDF',
+      'csv_to_excel': 'CSV ➔ Excel (XLSX)',
+      'ppt_to_pdf': 'Präsentation (PPTX) ➔ PDF',
+      'img_to_pdf': 'Bild (JPG/PNG) ➔ PDF',
+      'pdf_to_img': 'PDF ➔ Bildgalerie',
+      'compress_pdf': 'PDF komprimieren',
+      'merge_pdf': 'PDFs zusammenführen',
+      'split_pdf': 'PDF teilen',
+      'protect_pdf': 'PDF sperren',
+      'txt_to_pdf': 'Text (TXT) ➔ PDF',
+      'language_select': 'Sprache auswählen',
+      'theme_toggle': 'Design wechseln',
+      'share': 'Teilen',
+      'delete': 'Löschen',
+      'cancel': 'Abbrechen',
+      'apply': 'Anwenden',
+      'clear': 'Löschen',
+      'sign_pdf': 'PDF unterschreiben',
+      'signed': 'Unterschrieben ✓',
+      'not_signed': 'Nicht unterschrieben',
+    },
+    'es': {
+      'app_title': 'Easy Office',
+      'nav_home': 'Inicio',
+      'nav_converter': 'Conversor',
+      'nav_tools': 'PDF y OCR',
+      'nav_ai': 'Easy AI',
+      'nav_templates': 'Plantillas',
+      'search_hint': 'Buscar documentos, hojas, diapositivas...',
+      'recent_files': 'Archivos Recientes',
+      'quick_doc': 'Documento',
+      'quick_sheet': 'Hoja',
+      'quick_slide': 'Diapositiva',
+      'quick_scan': 'Cámara OCR',
+      'quick_convert': 'Convertir',
+      'filter_all': 'Todo',
+      'filter_doc': 'DOC',
+      'filter_xls': 'XLS',
+      'filter_ppt': 'PPT',
+      'filter_pdf': 'PDF',
+      'no_files': 'No se encontraron documentos.',
+      'save_success': '¡Guardado con éxito!',
+      'words': 'Palabras',
+      'chars': 'Caracteres',
+      'read_time': 'min de lectura',
+      'digital_signature': 'Firma Digital',
+      'digital_signature_sub': 'Firma documentos PDF con tu dedo',
+      'ocr_scanner': 'Cámara y Escáner',
+      'ocr_scanner_sub': 'Captura con la cámara y convierte a texto',
+      'camera_scan': 'Abrir Cámara y Escanear',
+      'gallery_pick': 'Elegir de la Galería',
+      'contrast_filter': 'Filtro de Alto Contraste B/N',
+      'extracting_text': 'IA extrayendo texto...',
+      'copy_text': 'Copiar Texto',
+      'create_doc_from_scan': 'Transferir a Documento',
+      'converter_title': 'Conversor de Formatos',
+      'converter_sub': 'Convierte entre Word, Excel, PDF, PPT e Imágenes',
+      'select_file': 'Seleccionar Archivo para Convertir',
+      'convert_btn': 'Convertir y Guardar',
+      'converting': 'Convirtiendo...',
+      'conversion_done': '¡Conversión Completada!',
+      'word_to_pdf': 'Word (DOCX) ➔ PDF',
+      'pdf_to_word': 'PDF ➔ Word (DOCX)',
+      'excel_to_pdf': 'Excel (XLSX) ➔ PDF',
+      'csv_to_excel': 'CSV ➔ Excel (XLSX)',
+      'ppt_to_pdf': 'Presentación (PPTX) ➔ PDF',
+      'img_to_pdf': 'Imagen (JPG/PNG) ➔ PDF',
+      'pdf_to_img': 'PDF ➔ Galería de Imágenes',
+      'compress_pdf': 'Comprimir PDF',
+      'merge_pdf': 'Unir Archivos PDF',
+      'split_pdf': 'Dividir Páginas PDF',
+      'protect_pdf': 'Proteger y Bloquear PDF',
+      'txt_to_pdf': 'Texto (TXT) ➔ PDF',
+      'language_select': 'Seleccionar Idioma',
+      'theme_toggle': 'Cambiar Tema',
+      'share': 'Compartir',
+      'delete': 'Eliminar',
+      'cancel': 'Cancelar',
+      'apply': 'Aplicar',
+      'clear': 'Limpiar',
+      'sign_pdf': 'Firmar PDF',
+      'signed': 'Firmado ✓',
+      'not_signed': 'Sin Firmar',
+    }
+  };
+
+  static String tr(String key) {
+    final lang = _instance.languageCode;
+    return _localizedValues[lang]?[key] ?? _localizedValues['en']?[key] ?? key;
+  }
+}
