@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Easy Office",
+    "slug": "easy-office-mobile",
+    "version": "2.0.0",
+    "orientation": "default",
+    "icon": "./assets/icons/app_icon.png",
+    "scheme": "easyoffice",
+    "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router", "expo-font"],
+    "android": { "package": "com.easyoffice.mobile" },
+    "ios": { "bundleIdentifier": "com.easyoffice.mobile" }
+  }
+}

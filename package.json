@@ -1,0 +1,24 @@
+{
+  "name": "easy-office-mobile",
+  "version": "2.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "bootstrap": "sh scripts/bootstrap.sh",
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "test": "node --test \"src/core/__tests__/*.test.ts\"",
+    "typecheck:core": "tsc -p tsconfig.core.json"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "pako": "^1.0.11",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.2.108"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
